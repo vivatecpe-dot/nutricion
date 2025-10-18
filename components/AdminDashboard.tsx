@@ -3,16 +3,19 @@ import supabase from '../supabaseClient';
 import { BmiData } from '../types';
 import UserCard from './UserCard';
 import AddUserForm from './AddUserForm';
+import DashboardMetrics from './DashboardMetrics';
+import { PlusIcon } from './icons/FabIcon';
 
 const AdminDashboard: React.FC = () => {
     const [registrations, setRegistrations] = useState<BmiData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [isAddUserFormOpen, setIsAddUserFormOpen] = useState(false);
+    const [activeFilter, setActiveFilter] = useState('all');
 
     const handleLogout = () => {
         sessionStorage.removeItem('isAdminAuthenticated');
-        window.location.href = '/'; // Redirige a la página principal
+        window.location.href = '/';
     };
 
     const priorityMap: { [key: string]: number } = {
@@ -32,7 +35,7 @@ const AdminDashboard: React.FC = () => {
                 return priorityMap[key];
             }
         }
-        return -1; // Default/unknown
+        return -1;
     };
 
     const fetchRegistrations = useCallback(async () => {
@@ -112,9 +115,30 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
+    const getFilteredRegistrations = () => {
+        if (activeFilter === 'all') return registrations;
+        
+        const today = new Date().toISOString().slice(0, 10);
+
+        return registrations.filter(reg => {
+            switch (activeFilter) {
+                case 'today':
+                    return reg.created_at?.slice(0, 10) === today;
+                case 'pending':
+                    return reg.estado === 'Evaluación Agendada';
+                case 'active':
+                    return reg.estado === 'En Acompañamiento';
+                default:
+                    return true;
+            }
+        });
+    };
+
+    const filteredRegistrations = getFilteredRegistrations();
+
     return (
         <div className="min-h-screen bg-gray-100 font-sans p-4 md:p-8">
-            <header className="mb-8 max-w-2xl mx-auto">
+            <header className="mb-8 max-w-4xl mx-auto">
                 <div className="flex justify-between items-center">
                     <a href="/" className="text-gray-500 hover:text-gray-800">&larr; Volver</a>
                     <button 
@@ -124,24 +148,18 @@ const AdminDashboard: React.FC = () => {
                         Cerrar Sesión
                     </button>
                 </div>
-                <div className="mt-6 flex flex-col md:flex-row justify-between md:items-center text-center md:text-left gap-4">
-                    <div>
-                        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Panel de Registros</h1>
-                        <p className="text-gray-600 mt-2">Lista de participantes ordenada por prioridad.</p>
-                    </div>
-                    <button
-                        onClick={() => setIsAddUserFormOpen(true)}
-                        className="bg-green-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center gap-2 justify-center shrink-0"
-                    >
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
-                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
-                        </svg>
-                         Calculadora IMC
-                    </button>
+                <div className="mt-6 text-center md:text-left">
+                    <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Panel de Control</h1>
+                    <p className="text-gray-600 mt-2">Gestiona tus participantes y visualiza tu progreso.</p>
                 </div>
             </header>
-            <main className="max-w-2xl mx-auto">
+            <main className="max-w-4xl mx-auto">
+                <DashboardMetrics 
+                    registrations={registrations} 
+                    onFilterChange={setActiveFilter}
+                    activeFilter={activeFilter}
+                />
+                
                 {isLoading && (
                     <div className="flex justify-center items-center py-16">
                         <svg className="animate-spin w-12 h-12 text-green-600" fill="none" viewBox="0 0 24 24">
@@ -152,9 +170,9 @@ const AdminDashboard: React.FC = () => {
                 )}
                 {error && <p className="text-red-500 text-center bg-red-100 p-4 rounded-lg">{error}</p>}
                 {!isLoading && !error && (
-                    registrations.length > 0 ? (
-                        <div className="space-y-4">
-                            {registrations.map((reg) => (
+                    filteredRegistrations.length > 0 ? (
+                        <div className="space-y-3">
+                            {filteredRegistrations.map((reg) => (
                                 <UserCard 
                                     key={reg.id} 
                                     data={reg} 
@@ -165,10 +183,21 @@ const AdminDashboard: React.FC = () => {
                             ))}
                         </div>
                     ) : (
-                        <p className="text-gray-500 text-center mt-8">No hay registros todavía.</p>
+                        <p className="text-gray-500 text-center mt-12">
+                            {registrations.length > 0 ? 'No hay registros que coincidan con este filtro.' : 'No hay registros todavía.'}
+                        </p>
                     )
                 )}
             </main>
+            
+            <button
+                onClick={() => setIsAddUserFormOpen(true)}
+                className="fixed bottom-6 right-6 bg-green-600 text-white rounded-full p-4 shadow-lg hover:bg-green-700 transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-green-300"
+                aria-label="Abrir Calculadora y Registro"
+            >
+                <PlusIcon />
+            </button>
+
             {isAddUserFormOpen && (
                 <AddUserForm 
                     onClose={() => setIsAddUserFormOpen(false)} 

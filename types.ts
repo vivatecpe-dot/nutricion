@@ -8,4 +8,6 @@ export interface BmiData {
     altura: number;
     imc: number;
     categoria: string;
+    estado?: string;
+    notas?: string;
 }

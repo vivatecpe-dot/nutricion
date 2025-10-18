@@ -1,13 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BmiData } from '../types';
 import { WhatsappIcon } from './icons/WhatsappIcon';
 
 interface UserCardProps {
     data: BmiData;
+    onDelete: (id: number) => Promise<void>;
+    onUpdateStatus: (id: number, newStatus: string) => Promise<void>;
+    onUpdateNotes: (id: number, newNotes: string) => Promise<void>;
 }
 
-const UserCard: React.FC<UserCardProps> = ({ data }) => {
-    
+const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onUpdateNotes }) => {
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [notes, setNotes] = useState(data.notas || '');
+    const [isSavingNotes, setIsSavingNotes] = useState(false);
+
     const getCategoryStyles = (category: string): { color: string, text: string } => {
         const lowerCaseCategory = category.toLowerCase();
         if (lowerCaseCategory.includes('obesidad')) {
@@ -29,9 +36,34 @@ const UserCard: React.FC<UserCardProps> = ({ data }) => {
         const userNumber = data.telefono.replace(/[^0-9]/g, '');
         const message = `¡Hola ${data.nombre}, soy Cindy Daboin! 😊 Vi que te registraste para calcular tu IMC. ¡Felicidades por dar este gran paso hacia una vida más saludable! Me encantaría conversar contigo y contarte cómo puedo ayudarte a alcanzar tus metas. ¿Tienes un momento para charlar?`;
         const encodedMessage = encodeURIComponent(message);
-        // Assuming the number includes country code for WhatsApp `wa.me` link
         const whatsappUrl = `https://wa.me/${userNumber}?text=${encodedMessage}`;
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
+    };
+
+    const statusOptions = ['Nuevo', 'Contactado', 'En seguimiento', 'Convertido', 'No interesado'];
+    const currentStatus = data.estado || 'Nuevo';
+
+    const handleDelete = async () => {
+        if (window.confirm(`¿Estás seguro de que quieres eliminar el registro de ${data.nombre}? Esta acción no se puede deshacer.`)) {
+            if(!data.id) return;
+            setIsDeleting(true);
+            await onDelete(data.id);
+        }
+    };
+
+    const handleStatusChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+        if(!data.id) return;
+        const newStatus = e.target.value;
+        setIsUpdating(true);
+        await onUpdateStatus(data.id, newStatus);
+        setIsUpdating(false);
+    };
+    
+    const handleSaveNotes = async () => {
+        if (!data.id) return;
+        setIsSavingNotes(true);
+        await onUpdateNotes(data.id, notes);
+        setIsSavingNotes(false);
     };
 
     const { color, text } = getCategoryStyles(data.categoria);
@@ -68,6 +100,68 @@ const UserCard: React.FC<UserCardProps> = ({ data }) => {
                     <WhatsappIcon />
                     <span className="ml-2">Contactar por WhatsApp</span>
                 </button>
+
+                <div className="border-t border-gray-200 mt-4 pt-3">
+                    <div className="mb-4">
+                        <label htmlFor={`notes-${data.id}`} className="block text-sm font-medium text-gray-700 mb-1">
+                            Notas
+                        </label>
+                        <textarea
+                            id={`notes-${data.id}`}
+                            rows={3}
+                            className="w-full text-sm p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 transition disabled:bg-gray-100"
+                            placeholder="Añadir una nota sobre el participante..."
+                            value={notes}
+                            onChange={(e) => setNotes(e.target.value)}
+                            disabled={isSavingNotes}
+                        />
+                        <button
+                            onClick={handleSaveNotes}
+                            disabled={isSavingNotes || notes === (data.notas || '')}
+                            className="mt-2 w-full sm:w-auto bg-green-600 text-white py-1.5 px-4 rounded-md font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center text-sm disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            {isSavingNotes ? (
+                                <>
+                                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    Guardando...
+                                </>
+                            ) : 'Guardar Nota'}
+                        </button>
+                    </div>
+
+                    <div className="border-t border-gray-200 pt-3 flex justify-between items-center">
+                        <div className="flex items-center space-x-2">
+                            <label htmlFor={`status-${data.id}`} className="text-sm font-medium text-gray-600">Estado:</label>
+                            <select
+                                id={`status-${data.id}`}
+                                value={currentStatus}
+                                onChange={handleStatusChange}
+                                disabled={isUpdating}
+                                className="text-sm rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 disabled:bg-gray-100 transition"
+                            >
+                                {statusOptions.map(option => (
+                                    <option key={option} value={option}>{option}</option>
+                                ))}
+                            </select>
+                             {isUpdating && <svg className="animate-spin h-4 w-4 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
+                        </div>
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors duration-200 disabled:opacity-50"
+                            aria-label={`Eliminar a ${data.nombre}`}
+                        >
+                            {isDeleting ? 
+                                <svg className="animate-spin h-5 w-5 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                 :
+                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd"></path></svg>
+                            }
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

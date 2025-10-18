@@ -43,7 +43,7 @@ const AdminDashboard: React.FC = () => {
 
         if (error) {
             console.error('Error fetching registrations:', error);
-            setError('No se pudieron cargar los registros. Inténtalo de nuevo más tarde.');
+            setError('No se pudieron cargar los registros. Revisa que las columnas "estado" y "notas" existan en tu tabla de Supabase.');
         } else if (data) {
             const sortedData = data.sort((a, b) => getPriority(b.categoria) - getPriority(a.categoria));
             setRegistrations(sortedData as BmiData[]);
@@ -54,6 +54,56 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         fetchRegistrations();
     }, [fetchRegistrations]);
+
+    const handleDeleteRegistration = async (id: number) => {
+        const { error } = await supabase
+            .from('registros_imc')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error deleting registration:', error);
+            setError('Error al eliminar el registro.');
+        } else {
+            setRegistrations(prev => prev.filter(reg => reg.id !== id));
+        }
+    };
+
+    const handleUpdateStatus = async (id: number, newStatus: string) => {
+        const { data, error } = await supabase
+            .from('registros_imc')
+            .update({ estado: newStatus })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating status:', error);
+            setError('Error al actualizar el estado.');
+        } else if (data) {
+            setRegistrations(prev => 
+                prev.map(reg => (reg.id === id ? { ...reg, estado: data.estado } : reg))
+            );
+        }
+    };
+
+    const handleUpdateNotes = async (id: number, newNotes: string) => {
+        const { data, error } = await supabase
+            .from('registros_imc')
+            .update({ notas: newNotes })
+            .eq('id', id)
+            .select()
+            .single();
+
+        if (error) {
+            console.error('Error updating notes:', error);
+            setError('Error al actualizar las notas.');
+        } else if (data) {
+            setRegistrations(prev => 
+                prev.map(reg => (reg.id === id ? { ...reg, notas: data.notas } : reg))
+            );
+        }
+    };
 
     return (
         <div className="min-h-screen bg-gray-100 font-sans p-4 md:p-8">
@@ -84,7 +134,13 @@ const AdminDashboard: React.FC = () => {
                     registrations.length > 0 ? (
                         <div className="space-y-4">
                             {registrations.map((reg) => (
-                                <UserCard key={reg.id} data={reg} />
+                                <UserCard 
+                                    key={reg.id} 
+                                    data={reg} 
+                                    onDelete={handleDeleteRegistration}
+                                    onUpdateStatus={handleUpdateStatus}
+                                    onUpdateNotes={handleUpdateNotes}
+                                />
                             ))}
                         </div>
                     ) : (

@@ -18,15 +18,6 @@ const getBmiCategory = (imc: number): string => {
     return 'Categoría no determinada';
 };
 
-const bmiCategories = [
-    'Bajo peso',
-    'Peso normal',
-    'Sobrepeso',
-    'Obesidad clase I',
-    'Obesidad clase II',
-    'Obesidad clase III',
-];
-
 const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
     const [formData, setFormData] = useState({
         nombre: '',
@@ -39,6 +30,7 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [showRegistrationFields, setShowRegistrationFields] = useState(false);
 
     useEffect(() => {
         const peso = parseFloat(formData.peso);
@@ -53,10 +45,12 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
                 imc: calculatedImc.toString(),
                 categoria: calculatedCategory,
             }));
+        } else {
+            setFormData(prev => ({ ...prev, imc: '', categoria: ''}));
         }
     }, [formData.peso, formData.altura]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -115,60 +109,73 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="flex justify-between items-center mb-6">
-                    <h2 className="text-2xl font-bold text-gray-800">Añadir Nuevo Registro</h2>
+                    <h2 className="text-2xl font-bold text-gray-800">Calculadora y Registro</h2>
                     <button onClick={onClose} className="text-gray-500 hover:text-gray-800">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                        <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Ej: Juan Pérez" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                        <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej: 51987654321" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-                        <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Ej: 30" required min="1" inputMode="numeric" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
-                    </div>
+                    <h3 className="text-lg font-semibold text-gray-700">1. Calcular IMC</h3>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
-                            <input type="number" name="peso" value={formData.peso} onChange={handleChange} placeholder="Ej: 70.5" required step="0.1" min="1" inputMode="decimal" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input type="number" name="peso" value={formData.peso} onChange={handleChange} placeholder="Ej: 70.5" step="0.1" min="1" inputMode="decimal" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Altura (cm)</label>
-                            <input type="number" name="altura" value={formData.altura} onChange={handleChange} placeholder="Ej: 165" required min="1" inputMode="decimal" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            <input type="number" name="altura" value={formData.altura} onChange={handleChange} placeholder="Ej: 165" min="1" inputMode="decimal" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                         </div>
                     </div>
-                    <div className="bg-gray-50 p-4 rounded-lg border">
-                        <h3 className="text-lg font-semibold text-gray-700 mb-2">Resultado IMC (auto-calculado)</h3>
-                        <div className="grid grid-cols-2 gap-4">
-                           <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">IMC</label>
-                                <input type="number" name="imc" value={formData.imc} onChange={handleChange} required step="0.01" inputMode="decimal" className="w-full px-4 py-2 border rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    
+                    {formData.imc && (
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                            <h3 className="text-md font-semibold text-gray-800 mb-2">Resultado</h3>
+                            <div className="text-center">
+                                <p className="text-4xl font-bold text-green-600">{formData.imc}</p>
+                                <p className="text-md font-semibold text-gray-700">{formData.categoria}</p>
+                            </div>
+                        </div>
+                    )}
+
+                    {showRegistrationFields && (
+                         <div className="space-y-4 pt-4 border-t mt-6">
+                            <h3 className="text-lg font-semibold text-gray-700">2. Registrar Datos</h3>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                                <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Ej: Juan Pérez" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
-                                <select name="categoria" value={formData.categoria} onChange={handleChange} required className="w-full px-4 py-2 border rounded-lg bg-gray-100 focus:outline-none focus:ring-2 focus:ring-green-500">
-                                    {bmiCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                                </select>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej: 51987654321" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
                             </div>
-                        </div>
-                    </div>
-
-                    {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                                <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Ej: 30" required min="1" inputMode="numeric" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                            </div>
+                         </div>
+                    )}
+                    
+                    {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
 
                     <div className="pt-4">
-                        <button
-                            type="submit"
-                            disabled={isLoading}
-                            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"
-                        >
-                            {isLoading ? <LoadingSpinner /> : 'Guardar Registro'}
-                        </button>
+                        {!showRegistrationFields ? (
+                             <button
+                                type="button"
+                                onClick={() => setShowRegistrationFields(true)}
+                                disabled={!formData.imc}
+                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            >
+                                Registrar Participante
+                            </button>
+                        ) : (
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"
+                            >
+                                {isLoading ? <LoadingSpinner /> : 'Guardar Registro'}
+                            </button>
+                        )}
                     </div>
                 </form>
             </div>

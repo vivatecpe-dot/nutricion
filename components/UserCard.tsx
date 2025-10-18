@@ -101,8 +101,8 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
             onKeyPress={(e) => e.key === 'Enter' && setIsExpanded(!isExpanded)}
             aria-expanded={isExpanded}
         >
-            <div className="flex items-center">
-                <div className={`w-2 h-auto self-stretch flex-shrink-0 ${color}`}></div>
+            <div className="flex items-stretch">
+                <div className={`w-2 flex-shrink-0 ${color}`}></div>
                 <div className="p-4 w-full">
                     <div className="flex justify-between items-center">
                         <h3 className="text-lg font-bold text-gray-800">{data.nombre}</h3>
@@ -116,25 +116,22 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                         </div>
                     </div>
 
+                    <div className="mt-2">
+                        <div className="w-full bg-gray-200 rounded-full h-2.5">
+                            <div 
+                                className={`${progress.color} h-2.5 rounded-full transition-all duration-500`} 
+                                style={{ width: `${progress.percent}%` }}
+                                title={`${progress.label} - ${progress.percent}%`}
+                            ></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>{progress.label}</span>
+                            <span>{progress.percent}%</span>
+                        </div>
+                    </div>
+
                     {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-4" onClick={(e) => e.stopPropagation()}>
-                             <div className="mb-4">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Progreso del Cliente
-                                </label>
-                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                    <div 
-                                        className={`${progress.color} h-2.5 rounded-full transition-all duration-500`} 
-                                        style={{ width: `${progress.percent}%` }}
-                                        title={`${progress.label} - ${progress.percent}%`}
-                                    ></div>
-                                </div>
-                                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                    <span>{progress.label}</span>
-                                    <span>{progress.percent}%</span>
-                                </div>
-                            </div>
-                            
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600">
                                 <p><span className="font-semibold">Teléfono:</span> <a href={`tel:${data.telefono}`} className="text-green-700 hover:underline">{data.telefono}</a></p>
                                 <p><span className="font-semibold">Edad:</span> {data.edad} años</p>

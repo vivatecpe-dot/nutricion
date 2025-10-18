@@ -66,6 +66,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             altura,
             imc,
             categoria,
+            estado: 'Nuevo',
         };
         
         try {

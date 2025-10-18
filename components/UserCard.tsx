@@ -9,6 +9,31 @@ interface UserCardProps {
     onUpdateNotes: (id: number, newNotes: string) => Promise<void>;
 }
 
+const getStatusStyles = (status: string): { bg: string; text: string; } => {
+    const s = (status || 'nuevo').toLowerCase();
+    if (s.includes('nuevo')) return { bg: 'bg-gray-200', text: 'text-gray-800' };
+    if (s.includes('contactado')) return { bg: 'bg-blue-200', text: 'text-blue-800' };
+    if (s.includes('evaluación agendada')) return { bg: 'bg-purple-200', text: 'text-purple-800' };
+    if (s.includes('evaluación realizada')) return { bg: 'bg-yellow-200', text: 'text-yellow-800' };
+    if (s.includes('en acompañamiento')) return { bg: 'bg-green-200', text: 'text-green-800' };
+    if (s.includes('seguimiento')) return { bg: 'bg-teal-200', text: 'text-teal-800' };
+    if (s.includes('no interesado')) return { bg: 'bg-red-200', text: 'text-red-800' };
+    return { bg: 'bg-gray-200', text: 'text-gray-800' };
+};
+
+const getProgress = (status: string): { percent: number; color: string; label: string } => {
+    const s = (status || 'nuevo').toLowerCase();
+    if (s.includes('nuevo')) return { percent: 10, color: 'bg-gray-400', label: 'Nuevo' };
+    if (s.includes('contactado')) return { percent: 30, color: 'bg-blue-500', label: 'Contactado' };
+    if (s.includes('evaluación agendada')) return { percent: 50, color: 'bg-purple-500', label: 'Evaluación Agendada' };
+    if (s.includes('evaluación realizada')) return { percent: 75, color: 'bg-yellow-500', label: 'Evaluación Realizada' };
+    if (s.includes('en acompañamiento')) return { percent: 100, color: 'bg-green-500', label: 'Cliente Activo' };
+    if (s.includes('seguimiento')) return { percent: 100, color: 'bg-teal-500', label: 'Seguimiento' };
+    if (s.includes('no interesado')) return { percent: 100, color: 'bg-red-500', label: 'No Interesado' };
+    return { percent: 0, color: 'bg-gray-400', label: 'Inicio' };
+};
+
+
 const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onUpdateNotes }) => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
@@ -16,13 +41,13 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
     const [notes, setNotes] = useState(data.notas || '');
     const [isSavingNotes, setIsSavingNotes] = useState(false);
 
-    const getCategoryStyles = (category: string): { color: string, text: string } => {
+    const getCategoryStyles = (category: string): { color: string } => {
         const lowerCaseCategory = category.toLowerCase();
-        if (lowerCaseCategory.includes('obesidad')) return { color: 'bg-red-500', text: 'Prioridad Alta' };
-        if (lowerCaseCategory.includes('sobrepeso')) return { color: 'bg-yellow-500', text: 'Prioridad Media' };
-        if (lowerCaseCategory.includes('bajo peso')) return { color: 'bg-blue-500', text: 'Seguimiento' };
-        if (lowerCaseCategory.includes('peso normal')) return { color: 'bg-green-500', text: 'Saludable' };
-        return { color: 'bg-gray-400', text: 'Sin Clasificar' };
+        if (lowerCaseCategory.includes('obesidad')) return { color: 'bg-red-500' };
+        if (lowerCaseCategory.includes('sobrepeso')) return { color: 'bg-yellow-500' };
+        if (lowerCaseCategory.includes('bajo peso')) return { color: 'bg-blue-500' };
+        if (lowerCaseCategory.includes('peso normal')) return { color: 'bg-green-500' };
+        return { color: 'bg-gray-400' };
     };
 
     const handleWhatsAppClick = (e: React.MouseEvent) => {
@@ -63,7 +88,9 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
         setIsSavingNotes(false);
     };
 
-    const { color, text } = getCategoryStyles(data.categoria);
+    const { color } = getCategoryStyles(data.categoria);
+    const statusStyles = getStatusStyles(currentStatus);
+    const progress = getProgress(currentStatus);
 
     return (
         <div 
@@ -78,14 +105,11 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
                 <div className={`w-2 h-auto self-stretch flex-shrink-0 ${color}`}></div>
                 <div className="p-4 w-full">
                     <div className="flex justify-between items-center">
-                        <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4">
-                            <h3 className="text-lg font-bold text-gray-800">{data.nombre}</h3>
-                            <span className="text-sm text-gray-600">{currentStatus}</span>
-                        </div>
+                        <h3 className="text-lg font-bold text-gray-800">{data.nombre}</h3>
                         <div className="flex items-center gap-2">
-                             <div className={`hidden sm:block px-2 py-1 text-xs font-semibold text-white ${color} rounded-full`}>
-                                {text}
-                            </div>
+                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusStyles.bg} ${statusStyles.text}`}>
+                                {currentStatus}
+                            </span>
                             <svg className={`w-5 h-5 text-gray-500 transform transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
                             </svg>
@@ -94,6 +118,23 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
 
                     {isExpanded && (
                         <div className="mt-4 pt-4 border-t border-gray-200 space-y-4" onClick={(e) => e.stopPropagation()}>
+                             <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Progreso del Cliente
+                                </label>
+                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div 
+                                        className={`${progress.color} h-2.5 rounded-full transition-all duration-500`} 
+                                        style={{ width: `${progress.percent}%` }}
+                                        title={`${progress.label} - ${progress.percent}%`}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                    <span>{progress.label}</span>
+                                    <span>{progress.percent}%</span>
+                                </div>
+                            </div>
+                            
                             <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm text-gray-600">
                                 <p><span className="font-semibold">Teléfono:</span> <a href={`tel:${data.telefono}`} className="text-green-700 hover:underline">{data.telefono}</a></p>
                                 <p><span className="font-semibold">Edad:</span> {data.edad} años</p>

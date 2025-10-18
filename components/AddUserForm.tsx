@@ -93,6 +93,7 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
             altura,
             imc,
             categoria,
+            estado: 'Nuevo',
         };
         
         try {

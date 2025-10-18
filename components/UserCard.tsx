@@ -40,7 +40,15 @@ const UserCard: React.FC<UserCardProps> = ({ data, onDelete, onUpdateStatus, onU
         window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
     };
 
-    const statusOptions = ['Nuevo', 'Contactado', 'En seguimiento', 'Convertido', 'No interesado'];
+    const statusOptions = [
+        'Nuevo',
+        'Contactado',
+        'Evaluación Agendada',
+        'Evaluación Realizada',
+        'En Acompañamiento',
+        'Seguimiento (Post-Evaluación)',
+        'No Interesado',
+    ];
     const currentStatus = data.estado || 'Nuevo';
 
     const handleDelete = async () => {

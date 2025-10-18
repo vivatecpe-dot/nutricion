@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import supabase from '../supabaseClient';
 import { BmiData } from '../types';
 import LoadingSpinner from './LoadingSpinner';
@@ -26,33 +26,46 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
         peso: '',
         altura: '',
         imc: '',
-        categoria: 'Peso normal',
+        categoria: '',
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [calculationDone, setCalculationDone] = useState(false);
     const [showRegistrationFields, setShowRegistrationFields] = useState(false);
-
-    useEffect(() => {
-        const peso = parseFloat(formData.peso);
-        const altura = parseFloat(formData.altura);
-
-        if (!isNaN(peso) && peso > 0 && !isNaN(altura) && altura > 0) {
-            const alturaM = altura / 100;
-            const calculatedImc = parseFloat((peso / (alturaM * alturaM)).toFixed(2));
-            const calculatedCategory = getBmiCategory(calculatedImc);
-            setFormData(prev => ({
-                ...prev,
-                imc: calculatedImc.toString(),
-                categoria: calculatedCategory,
-            }));
-        } else {
-            setFormData(prev => ({ ...prev, imc: '', categoria: ''}));
-        }
-    }, [formData.peso, formData.altura]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+
+        if (['peso', 'altura', 'edad'].includes(name)) {
+            setCalculationDone(false);
+            setShowRegistrationFields(false);
+            setError(null);
+            setFormData(prev => ({ ...prev, [name]: value, imc: '', categoria: '' }));
+        }
+    };
+    
+    const handleCalculate = () => {
+        setError(null);
+        const peso = parseFloat(formData.peso);
+        const altura = parseFloat(formData.altura);
+        const edad = parseInt(formData.edad);
+
+        if (isNaN(edad) || isNaN(peso) || isNaN(altura) || altura <= 0 || peso <= 0 || edad <= 0) {
+            setError('Por favor, introduce valores numéricos positivos para edad, peso y altura.');
+            return;
+        }
+
+        const alturaM = altura / 100;
+        const calculatedImc = parseFloat((peso / (alturaM * alturaM)).toFixed(2));
+        const calculatedCategory = getBmiCategory(calculatedImc);
+        
+        setFormData(prev => ({
+            ...prev,
+            imc: calculatedImc.toString(),
+            categoria: calculatedCategory,
+        }));
+        setCalculationDone(true);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -66,8 +79,8 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
         const altura = parseFloat(formData.altura);
         const imc = parseFloat(formData.imc);
 
-        if (isNaN(edad) || isNaN(peso) || isNaN(altura) || isNaN(imc) || altura <= 0 || peso <= 0 || edad <= 0) {
-            setError('Por favor, introduce valores numéricos positivos y válidos.');
+        if (!nombre || !telefono || isNaN(edad) || isNaN(peso) || isNaN(altura) || isNaN(imc)) {
+            setError('Por favor, completa todos los campos para guardar el registro.');
             setIsLoading(false);
             return;
         }
@@ -101,6 +114,8 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
             setIsLoading(false);
         }
     };
+
+    const isCalculationReady = formData.peso && formData.altura && formData.edad;
     
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-40 transition-opacity duration-300" onClick={onClose}>
@@ -115,7 +130,11 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
                     </button>
                 </div>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <h3 className="text-lg font-semibold text-gray-700">1. Calcular IMC</h3>
+                    <h3 className="text-lg font-semibold text-gray-700">1. Datos para Cálculo</h3>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
+                        <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Ej: 30" min="1" inputMode="numeric" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Peso (kg)</label>
@@ -127,56 +146,59 @@ const AddUserForm: React.FC<AddUserFormProps> = ({ onClose, onSuccess }) => {
                         </div>
                     </div>
                     
-                    {formData.imc && (
-                        <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                            <h3 className="text-md font-semibold text-gray-800 mb-2">Resultado</h3>
-                            <div className="text-center">
-                                <p className="text-4xl font-bold text-green-600">{formData.imc}</p>
-                                <p className="text-md font-semibold text-gray-700">{formData.categoria}</p>
-                            </div>
-                        </div>
+                    {!calculationDone && (
+                         <button
+                            type="button"
+                            onClick={handleCalculate}
+                            disabled={!isCalculationReady}
+                            className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            Calcular IMC
+                        </button>
                     )}
 
-                    {showRegistrationFields && (
-                         <div className="space-y-4 pt-4 border-t mt-6">
-                            <h3 className="text-lg font-semibold text-gray-700">2. Registrar Datos</h3>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
-                                <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Ej: Juan Pérez" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                    {calculationDone && (
+                        <div className="space-y-4">
+                            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                                <h3 className="text-md font-semibold text-gray-800 mb-2">Resultado</h3>
+                                <div className="text-center">
+                                    <p className="text-4xl font-bold text-green-600">{formData.imc}</p>
+                                    <p className="text-md font-semibold text-gray-700">{formData.categoria}</p>
+                                </div>
                             </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
-                                <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej: 51987654321" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Edad</label>
-                                <input type="number" name="edad" value={formData.edad} onChange={handleChange} placeholder="Ej: 30" required min="1" inputMode="numeric" className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
-                            </div>
-                         </div>
+                            
+                            {!showRegistrationFields ? (
+                                <button
+                                    type="button"
+                                    onClick={() => setShowRegistrationFields(true)}
+                                    className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300"
+                                >
+                                    Registrar Participante
+                                </button>
+                            ) : (
+                                <div className="space-y-4 pt-4 border-t mt-6">
+                                    <h3 className="text-lg font-semibold text-gray-700">2. Registrar Datos</h3>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
+                                        <input type="text" name="nombre" value={formData.nombre} onChange={handleChange} placeholder="Ej: Juan Pérez" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                                        <input type="tel" name="telefono" value={formData.telefono} onChange={handleChange} placeholder="Ej: 51987654321" required className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" />
+                                    </div>
+                                     <button
+                                        type="submit"
+                                        disabled={isLoading || !formData.nombre || !formData.telefono}
+                                        className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"
+                                    >
+                                        {isLoading ? <LoadingSpinner /> : 'Guardar Registro'}
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                     )}
                     
                     {error && <p className="text-red-500 text-sm text-center mt-4">{error}</p>}
-
-                    <div className="pt-4">
-                        {!showRegistrationFields ? (
-                             <button
-                                type="button"
-                                onClick={() => setShowRegistrationFields(true)}
-                                disabled={!formData.imc}
-                                className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400 disabled:cursor-not-allowed"
-                            >
-                                Registrar Participante
-                            </button>
-                        ) : (
-                            <button
-                                type="submit"
-                                disabled={isLoading}
-                                className="w-full bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center justify-center disabled:bg-gray-400"
-                            >
-                                {isLoading ? <LoadingSpinner /> : 'Guardar Registro'}
-                            </button>
-                        )}
-                    </div>
                 </form>
             </div>
             <style>{`

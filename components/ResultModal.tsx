@@ -26,7 +26,7 @@ const ResultModal: React.FC<ResultModalProps> = ({ data, onClose }) => {
     };
 
     const handleWhatsAppClick = () => {
-        const whatsappNumber = '51975615244'; 
+        const whatsappNumber = '51900652150'; 
         const message = `¡Hola Cindy! Soy ${data.nombre} y estoy con toda la motivación para empezar mi transformación. Mi resultado de IMC es ${data.imc} (${data.categoria}). ¿Me podrías contar cuál es el siguiente paso para comenzar? ¡Gracias!`;
         const encodedMessage = encodeURIComponent(message);
         const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodedMessage}`;

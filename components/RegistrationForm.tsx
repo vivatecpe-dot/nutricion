@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import { BmiData } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import { UserIcon, PhoneIcon, CalendarIcon, SendIcon } from './icons/FormIcons';
@@ -8,6 +7,18 @@ import supabase from '../supabaseClient';
 interface RegistrationFormProps {
     onSuccess: (data: BmiData) => void;
 }
+
+// Función local para calcular la categoría del IMC, reemplazando la llamada a la API.
+const getBmiCategory = (imc: number): string => {
+    if (imc < 18.5) return 'Bajo peso';
+    if (imc >= 18.5 && imc < 25) return 'Peso normal';
+    if (imc >= 25 && imc < 30) return 'Sobrepeso';
+    if (imc >= 30 && imc < 35) return 'Obesidad clase I';
+    if (imc >= 35 && imc < 40) return 'Obesidad clase II';
+    if (imc >= 40) return 'Obesidad clase III';
+    return 'Categoría no determinada';
+};
+
 
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     const [formData, setFormData] = useState({
@@ -44,28 +55,20 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         const alturaM = altura / 100;
         const imc = parseFloat((peso / (alturaM * alturaM)).toFixed(2));
 
+        // Usamos la función local en lugar de la API de Gemini
+        const categoria = getBmiCategory(imc);
+
+        const resultData: BmiData = {
+            nombre,
+            telefono,
+            edad,
+            peso,
+            altura,
+            imc,
+            categoria,
+        };
+        
         try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            
-            const prompt = `Una persona con un IMC de ${imc} ¿en qué categoría de peso se encuentra según la OMS? Responde SOLO con el nombre de la categoría en español (ej: "Bajo peso", "Peso normal", "Sobrepeso", "Obesidad clase I").`;
-
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: prompt,
-            });
-
-            const categoria = response.text.trim();
-
-            const resultData: BmiData = {
-                nombre,
-                telefono,
-                edad,
-                peso,
-                altura,
-                imc,
-                categoria,
-            };
-            
             // Guardar en Supabase
             const { error: supabaseError } = await supabase
                 .from('registros_imc')
@@ -88,10 +91,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
 
         } catch (err) {
             console.error(err);
-            const errorMessage = (err instanceof Error && err.message.includes('Supabase'))
-                ? 'Hubo un error al guardar tu registro. Por favor, inténtalo de nuevo.'
-                : 'No se pudo obtener la categoría de IMC. Por favor, inténtalo de nuevo más tarde.';
-            setError(errorMessage);
+            setError('Hubo un error al guardar tu registro. Por favor, inténtalo de nuevo.');
         } finally {
             setIsLoading(false);
         }

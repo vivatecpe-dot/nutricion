@@ -2,11 +2,13 @@ import React, { useState, useEffect, useCallback } from 'react';
 import supabase from '../supabaseClient';
 import { BmiData } from '../types';
 import UserCard from './UserCard';
+import AddUserForm from './AddUserForm';
 
 const AdminDashboard: React.FC = () => {
     const [registrations, setRegistrations] = useState<BmiData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isAddUserFormOpen, setIsAddUserFormOpen] = useState(false);
 
     const handleLogout = () => {
         sessionStorage.removeItem('isAdminAuthenticated');
@@ -54,6 +56,11 @@ const AdminDashboard: React.FC = () => {
     useEffect(() => {
         fetchRegistrations();
     }, [fetchRegistrations]);
+
+    const handleAddUserSuccess = () => {
+        setIsAddUserFormOpen(false);
+        fetchRegistrations();
+    };
 
     const handleDeleteRegistration = async (id: number) => {
         const { error } = await supabase
@@ -107,7 +114,7 @@ const AdminDashboard: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-100 font-sans p-4 md:p-8">
-            <header className="mb-8 text-center max-w-2xl mx-auto">
+            <header className="mb-8 max-w-2xl mx-auto">
                 <div className="flex justify-between items-center">
                     <a href="/" className="text-gray-500 hover:text-gray-800">&larr; Volver</a>
                     <button 
@@ -117,8 +124,21 @@ const AdminDashboard: React.FC = () => {
                         Cerrar Sesión
                     </button>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mt-4">Panel de Registros</h1>
-                <p className="text-gray-600 mt-2">Lista de participantes ordenada por prioridad.</p>
+                <div className="mt-6 flex flex-col md:flex-row justify-between md:items-center text-center md:text-left gap-4">
+                    <div>
+                        <h1 className="text-3xl md:text-4xl font-bold text-gray-800">Panel de Registros</h1>
+                        <p className="text-gray-600 mt-2">Lista de participantes ordenada por prioridad.</p>
+                    </div>
+                    <button
+                        onClick={() => setIsAddUserFormOpen(true)}
+                        className="bg-green-600 text-white py-2 px-5 rounded-lg font-semibold hover:bg-green-700 transition-colors duration-300 flex items-center gap-2 justify-center shrink-0"
+                    >
+                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clipRule="evenodd" />
+                        </svg>
+                         Añadir Registro
+                    </button>
+                </div>
             </header>
             <main className="max-w-2xl mx-auto">
                 {isLoading && (
@@ -148,6 +168,12 @@ const AdminDashboard: React.FC = () => {
                     )
                 )}
             </main>
+            {isAddUserFormOpen && (
+                <AddUserForm 
+                    onClose={() => setIsAddUserFormOpen(false)} 
+                    onSuccess={handleAddUserSuccess} 
+                />
+            )}
         </div>
     );
 };
